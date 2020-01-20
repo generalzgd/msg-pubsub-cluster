@@ -1,0 +1,49 @@
+name: MsgSubscribeSvr
+ver: 1.0.0
+memo:
+postloglevel: 3
+loglevel: 7
+exclude: []
+degree: 8
+maxpackdelay: 1000ms
+cleandelay: 120s
+deaddelay: 60s
+retry: 3
+queuemode: 0
+batch: 10
+deadbatch: 100
+consul:
+  address: http://127.0.0.1:8500
+  token:
+  healthtype: tcp
+  healthport: 0
+post:
+  host:
+  port: 17048
+  connMax: 1000
+  readBufferSize: 10240
+  writeBufferSize: 10240
+  sendChanLimit: 10240
+  receiveChanLimit: 10240
+subscribe:
+  host:
+  port: 17049
+cluster:
+  type: 0
+  serf: 7770
+  raft: 7771
+  rpc: 7772
+  http: 7773
+  except: 3
+  peers: [192.168.163.11:7770,192.168.163.200:7770,192.168.163.184:7770]
+grpcpool:
+  init: 1
+  capacity: 5
+  idle: 0s
+  maxlife: 0s
+decode:
+  headsize: 24
+  cmdpos: 22
+  cmdsize: 2
+  lenpos: 0
+  lensize: 4

@@ -1,0 +1,81 @@
+@startuml
+title 集群工作流
+actor Producer as ca
+actor Custom as cb
+actor Admin as m
+participant Followers as f
+participant Leader as l
+
+autonumber
+l -> l: 启动
+activate l
+l <-> f: 搜集集群中最大索引\n(Rpc:CollectClusterIndex)
+l -> f: 同步索引\n(Raft:SyncClusterIndex)
+deactivate l
+
+f -> f: 启动
+activate f
+f <-> l: 请求获取索引\n(Rpc:AskClusterIndex)\n略显多余:\n每次同步数据前会同步一次索引\n但为保持数据一致性而保留
+l -> l: 如果l>f\n则返回l的索引
+l -> l: 如果l<f\n则修改l的索引
+l -> f: 同步索引\n(Raft:SyncClusterIndex)
+deactivate f
+
+f <-> l: 请求已订阅信息\n(Rpc:AskClusterSubscribedInfo)
+l -> f: 同步订阅信息\n(Raft:SyncSubscribeInfo)
+activate cb
+cb -> f: 订阅消息\n(SubscribeReq)
+f ->l: 请求订阅更新\n(Rpc:ReportSubscribeInfo)
+f <- l: 同步订阅偏差\n(Raft:SyncSubscribeInfoOffset)
+f --> cb: 订阅消息OK\n(SubscribeResp)
+deactivate cb
+
+ca -> f: 生产一个消息\n(ProduceMsg)
+activate f
+f -> f: 过滤未订阅的消息
+f -> l: 请求新索引，并持久化\n(Rpc:AskIncreasedIndex)
+l -> f: 同步索引，并持久化\n(Raft:SyncClusterIndex)
+f -> l: 上报新消息\n(Rpc:ReportNewMsg)
+activate l
+l -> l: 放入派发队列
+l -> f: 同步新消息到派发队列\n(Raft:SyncNewMsg)
+l -> l: 定时读取派发队列
+activate cb
+l -> cb: 发布消息(PublishMsg)
+f -> f: 定时读取派发队列
+f -> cb: 发布消息(PublishMsg)
+cb -> cb: 消息处理
+deactivate cb
+f -> l: 汇报发送结果\n(Rpc:ReportPublishLiveResult)
+f <- l: 同步消息成功/失败\n(Raft:SyncPublishLiveResult)
+l -> l: 删除发布队列\n保存死信队列
+deactivate l
+f -> f: 删除发布队列\n保存死信队列
+deactivate f
+
+activate l
+l -> l: 读取死信队列
+activate cb
+l -> cb: 发布消息\n(PublishMsg)
+activate f
+f -> f: 读取死信队列
+f -> cb: 发布消息\n(PublishMsg)
+cb -> cb: 消息处理
+deactivate cb
+f -> l: 汇报发送结果\n(Rpc:ReportPublishDeadResult)
+f <- l: 同步消息成功/失败\n(Raft:SyncPublishDeadResult)
+activate m
+l -> m: 如果失败N次，预警
+m -> m: 管理员干涉
+deactivate m
+deactivate l
+deactivate f
+
+activate cb
+cb -> f: 取消订阅消息\n(UnsubscribeReq)
+f -> l: 上报更新订阅信息\n(Rpc:ReportSubscribeInfo)
+f <- l: 同步订阅偏差\n(Raft:SyncSubscribeInfoOffset)
+f --> cb: 取消订阅消息ok\n(UnsubscribeResp)
+deactivate cb
+
+@enduml

@@ -1,0 +1,49 @@
+@startuml
+title 集群用例图
+:生产者Svr: as P
+:订阅者Svr: as A
+:管理员: as M
+
+package "消息订阅集群" {
+    node "消息订阅节点1(follower)" as N1
+    node "消息订阅节点2(follower)" as N2
+    node "消息订阅节点3(leader)" as N3
+    node "消息订阅节点4(follower)" as N4
+}
+[集群节点域名LB] as Dns
+
+A <--- Dns: 发布消息
+A ---> Dns: 订阅消息
+M <--- Dns: 发布预警消息
+M ---> Dns: 订阅预警消息
+P ---> Dns: 发送新消息
+
+Dns <--> N1
+Dns <--> N2
+N1 <--> N3: 同步索引/队列\n订阅信息
+N1 <--> N4: 同步索引/队列\n订阅信息
+N2 <--> N3: 同步索引/队列\n订阅信息
+N1 <-> N2: 同步索引/队列\n订阅信息
+N4 <-> N3: 同步索引/队列\n订阅信息
+N2 <-> N4: 同步索引/队列\n订阅信息
+
+note left of (N2)
+follower节点负责:
+1. 接收订阅/取消订阅的事件
+2. 接收生产者的消息
+3. 给订阅者发布消息
+4. 重发死信消息
+end note
+
+note right of (N3)
+leader节点负责:
+1. 管理集群索引ID
+2. 发送预警消息
+3. 同步集群队列
+4. 接收订阅/取消订阅的事件
+5. 接收生产者的消息
+6. 给订阅者发布消息
+7. 重发死信消息
+end note
+
+@enduml

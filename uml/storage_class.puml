@@ -1,0 +1,52 @@
+@startuml
+title 存储桥接图
+
+Interface Closer {
++Close() error
+}
+Interface IStoreBridge {
+- string bucket
++Store(data StoreItem) error
++StoreBatch(batch ...StoreItem) error
++UpdateBatch(batch ...StoreItem) error
++GetBatch(int) ([]StoreItem, error)
++DeleteRange(min, max StoreItem) error
++Delete( items ...StoreItem) error
++GetUint64(key string) (uint64, error)
++SetUnit64(key string, val uint64) (uint64, error)
+}
+Interface IStoreOperator {
++Store(bucket string, data StoreItem) error
++StoreBatch(bucket string, batch ...StoreItem) error
++UpdateBatch(bucket string, batch ...StoreItem) error
++DeleteRange(bucket string, min, max StoreItem) error
++Delete(bucket string, items ...StoreItem) error
++GetBatch(bucket string, limit int) ([]StoreItem, error)
++GetUint64(bucket, key string) (uint64, error)
++SetUnit64(bucket, key string, val uint64) (uint64, error)
+}
+
+Closer <|-- IStoreOperator
+Closer <|-- IStoreBridge
+IStoreBridge <|-- FlowStoreBridge
+IStoreOperator <|-- InMemStore
+IStoreOperator <|-- BoltStore
+
+IStoreOperator <-- FlowStoreBridge
+IStoreBridge <-- Manager
+
+Class FlowStoreBridge {
+-IStoreOperator opt
+}
+
+Class InMemStore{
+}
+
+Class BoltStore{
+}
+
+Class Manager {
+-IStoreBridge store
+}
+
+@enduml

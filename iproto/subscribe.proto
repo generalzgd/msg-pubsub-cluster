@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package iproto;
+
+// protoc -Iiproto --go_out=plugins=grpc:./iproto ./iproto/subscribe.proto
+message subscribeRequest {
+    // 需要订阅的协议ID
+    repeated uint32 cmdIds = 1;
+    // 订阅者的服务名
+    string consumerKey = 2;
+    // true：订阅，false:取消订阅
+    bool act = 3;
+    // 服务名
+    string name = 4;
+    // 消费者rpc接收通知地址
+    string rpcAddr = 5;
+}
+
+message subscribeReply {
+    uint32 code = 1;
+    string msg = 2;
+}
+
+message produceRequest {
+    bytes data = 1;
+}
+message produceReply {
+    uint32 code = 1;
+    string msg = 2;
+}
+
+service SubscribeSvr {
+    // 订阅需要的协议ID
+    rpc subscribe (subscribeRequest) returns (subscribeReply) {
+    }
+    // 向集群发送生产出来的消息
+    rpc produce (produceRequest) returns (produceReply) {
+    }
+}

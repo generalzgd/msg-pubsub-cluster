@@ -1,0 +1,100 @@
+before_script:
+  - echo $CI_PROJECT_DIR
+  - export VERSION=`date "+%Y%m%d-%H%M%S"`
+  - echo $VERSION
+  - export WORK_SPACE=`dirname ${CI_PROJECT_DIR}`
+  - echo $WORK_SPACE
+  - export PROJECT_NAME=`basename ${CI_PROJECT_DIR}`
+  - echo $PROJECT_NAME
+
+variables:
+  RELEASE_PATH: "/data/releases/"
+  #  bin目录（运行目录）
+  ROOT_PATH: "/data/newplatform/gosvr/bin/"
+  #  GOPATH目录，用于存放第三方包到mod目录
+  GO_PATH: "/data/newplatform/gosvr/src/"
+  #  服务项目代码仓库目录
+  GO_REPO: "/data/newplatform/gorepo/"
+  ROOT_NAME: msgsubscribesvr
+  REPLICAS: 3
+  # 编译后需要保存的目录列表
+  DIR_LIST: "config logs"
+  BETA_HOST: "10.62.62.25"
+  GRAY_HOST: "10.62.62.5"
+  ONLINE_HOST: "10.62.62.37"
+
+stages:
+  - init
+  - test
+  - deploy_beta
+  - deploy_gray
+  - deploy_online
+
+project_depend:
+  stage: init
+  only:
+    - beta
+    - tags
+  script:
+    - if [ ${CI_COMMIT_REF_NAME} == 'beta' ]; then BRANCH=beta; else BRANCH=master; fi; echo '开始当前构建环境：'${BRANCH}
+    - ln -sfn ${CI_PROJECT_DIR} ${GO_REPO}${PROJECT_NAME}
+    - cd ${GO_REPO}${PROJECT_NAME} && export GO111MODULE=on && ls -al && go get ./...
+    - echo 'go get success'
+#    - if [ ! -d "/data/newplatform/gosvr/src/svr-frame" ]; then git clone git@hutte.zhanqi.tv:go/svr-frame.git && git checkout ${BRANCH}; fi
+#    - if [ -d "/data/newplatform/gosvr/src/svr-frame" ]; then cd /data/newplatform/gosvr/src/svr-frame && git checkout ${BRANCH} && git pull; fi
+
+project_test:
+  stage: test
+  only:
+    - beta
+  tags:
+    - gosvr
+  script:
+    - cd ${GO_REPO}${PROJECT_NAME} && ls -al
+    - go test ./...
+    - echo 'go test success'
+
+deploy_beta_project:
+  stage: deploy_beta
+  only:
+    - beta
+  tags:
+    - gosvr
+  script:
+    # 制作新的版本目录
+    - mkdir -p ${WORK_SPACE}/${PROJECT_NAME}-${VERSION}; for DIR in ${DIR_LIST};do if [ ! -d ${CI_PROJECT_DIR}/${DIR} ]; then mkdir -p ${WORK_SPACE}/${PROJECT_NAME}-${VERSION}/${DIR}; else cp -rf ${CI_PROJECT_DIR}/${DIR} ${WORK_SPACE}/${PROJECT_NAME}-${VERSION}/; fi; done;
+    # 编译go文件
+    - source /etc/profile && go build -o ${WORK_SPACE}/${PROJECT_NAME}-${VERSION}/${PROJECT_NAME} && cd ${WORK_SPACE} && ls -al | grep `date "+%Y%m%d"` && cd ${PROJECT_NAME}-${VERSION} && ls -al
+    # 初始化目标服务器的项目目录
+    - for HOST in ${BETA_HOST};do ssh -T -p 22 -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@${HOST} " mkdir -p ${RELEASE_PATH}${PROJECT_NAME}/${VERSION} "; done;
+    # 开始同步本地文件至远程服务器
+    - for HOST in ${BETA_HOST};do rsync -avzq --rsh="ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 22" --exclude='.git' ${WORK_SPACE}/${PROJECT_NAME}-${VERSION}/ root@${HOST}:${RELEASE_PATH}${PROJECT_NAME}/${VERSION}; done;
+    # 文件同步完成，开始制作软连
+    - for HOST in ${BETA_HOST};do ssh -T -p 22 -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@${HOST} " ln -sfn ${RELEASE_PATH}${PROJECT_NAME}/${VERSION} ${RELEASE_PATH}${PROJECT_NAME}/current-${PROJECT_NAME}.tmp && chown -h root ${RELEASE_PATH}${PROJECT_NAME}/current-${PROJECT_NAME}.tmp && mv -fT ${RELEASE_PATH}${PROJECT_NAME}/current-${PROJECT_NAME}.tmp ${ROOT_PATH}${ROOT_NAME} && cd ${ROOT_PATH} && ls -al && docker-compose -f /data/app/env/docker-compose-beta.yaml restart $(seq ${REPLICAS} | xargs -I {} echo ${ROOT_NAME}{} | xargs)"; done;
+    # 历史版本清理
+    - for HOST in ${BETA_HOST};do ssh -T -p 22 -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@${HOST} " cd ${RELEASE_PATH}${PROJECT_NAME}/ && ls -1|sort -r|awk 'FNR > 5 {printf(\"rm -rf %s\n\", \$0);}' | bash && ps -ef | grep ${ROOT_NAME}"; done;
+    - echo 'deploy beta success'
+
+deploy_online:
+  stage: deploy_online
+  only:
+    refs:
+      - tags
+    variables:
+      - $CI_COMMIT_REF_NAME =~ /^v.*/
+  tags:
+    - gosvr
+  script:
+    # 制作新的版本目录
+    - mkdir -p ${WORK_SPACE}/${PROJECT_NAME}-${VERSION}; for DIR in ${DIR_LIST};do if [ ! -d ${CI_PROJECT_DIR}/${DIR} ]; then mkdir -p ${WORK_SPACE}/${PROJECT_NAME}-${VERSION}/${DIR}; else cp -rf ${CI_PROJECT_DIR}/${DIR} ${WORK_SPACE}/${PROJECT_NAME}-${VERSION}/; fi; done;
+    # 编译go文件
+    - source /etc/profile && go build -o ${WORK_SPACE}/${PROJECT_NAME}-${VERSION}/${PROJECT_NAME} && cd ${WORK_SPACE} && ls -al | grep `date "+%Y%m%d"` && cd ${PROJECT_NAME}-${VERSION} && ls -al
+    # 初始化目标服务器的项目目录
+    - for HOST in ${ONLINE_HOST};do ssh -T -p 22 -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@${HOST} " mkdir -p ${RELEASE_PATH}${PROJECT_NAME}/${VERSION} "; done;
+    # 开始同步本地文件至远程服务器
+    - for HOST in ${ONLINE_HOST};do rsync -avzq --rsh="ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 22" --exclude='.git' ${WORK_SPACE}/${PROJECT_NAME}-${VERSION}/ root@${HOST}:${RELEASE_PATH}${PROJECT_NAME}/${VERSION}; done;
+    # 文件同步完成，开始制作软连
+    - for HOST in ${ONLINE_HOST};do ssh -T -p 22 -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@${HOST} " ln -sfn ${RELEASE_PATH}${PROJECT_NAME}/${VERSION} ${RELEASE_PATH}${PROJECT_NAME}/current-${PROJECT_NAME}.tmp && chown -h root ${RELEASE_PATH}${PROJECT_NAME}/current-${PROJECT_NAME}.tmp && mv -fT ${RELEASE_PATH}${PROJECT_NAME}/current-${PROJECT_NAME}.tmp ${ROOT_PATH}${ROOT_NAME} && cd ${ROOT_PATH} && ls -al && /usr/bin/supervisorctl restart ${ROOT_NAME}"; done;
+    # 历史版本清理
+    - for HOST in ${ONLINE_HOST};do ssh -T -p 22 -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@${HOST} " cd ${RELEASE_PATH}${PROJECT_NAME}/ && ls -1|sort -r|awk 'FNR > 5 {printf(\"rm -rf %s\n\", \$0);}' | bash && ps -ef | grep ${ROOT_NAME}"; done;
+    - echo 'deploy online success'

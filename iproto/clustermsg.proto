@@ -1,0 +1,165 @@
+syntax = "proto3";
+
+package iproto;
+
+import "google/protobuf/any.proto";
+
+// protoc -Iiproto --go_out=plugins=grpc:./iproto ./iproto/clustermsg.proto
+// 持久化存储消息包
+message StorePack {
+    // 每条消息有个唯一的索引ID
+    uint64 index = 1;
+    // 如果为空，表示所有的消费者节点；如果存在，则这些节点需要重试。key为消费者唯一识别key,value为重试次数
+    map<string, uint32> peers = 2;
+    // Pack  gocmd.PostPacket
+    bytes data = 3;
+    // 记录时间戳
+    int64 recordTime = 4;
+}
+
+enum CusCmd {
+    None = 0;
+// raft
+    SyncClusterIndex = 1;
+    SyncSubscribeInfo = 2;
+    SyncNewMsg = 3;
+    SyncLiveResult = 4;
+    SyncDeadResult = 5;
+// rpc
+    RaftApply = 6;
+    CollectClusterIndex = 7;
+    AskIndex = 8;
+    AskSubscribedInfo = 9;
+    AskIncreasedIndex = 10;
+    ReportSubscribeInfoOffset = 11;
+    ReportNewMsg = 12;
+    ReportLiveResult = 13;
+    ReportDeadResult = 14;
+}
+
+// raft协议，集群日志同步入口
+message applyLogEntry {
+    CusCmd cmd = 1;
+    // 对应message的protobuf数据
+    google.protobuf.Any data = 2;
+}
+// //////////////////////
+
+message CommonReply {
+    uint32 code = 1;
+    string msg = 2;
+}
+
+message RaftApplyRequest {
+    CusCmd cmd = 1;
+    google.protobuf.Any data = 2;
+}
+
+message RaftApplyReply {
+    CommonReply res = 1;
+}
+
+// *****************************************
+message CollectClusterIndexRequest {
+}
+message CollectClusterIndexReply {
+    CommonReply res = 1;
+    uint64 index = 3;
+}
+
+message SyncClusterIndexRequest {
+    uint64 index = 1;
+}
+message SyncClusterIndexReply {
+    CommonReply res = 1;
+}
+
+message SyncSubscribeInfoRequest {
+    map<uint32, uint32> data = 1;
+}
+message SyncSubscribeInfoReply {
+    CommonReply res = 1;
+}
+
+message SyncSubscribeInfoOffsetRequest {
+//    true:订阅，false:取消订阅
+    bool action = 1;
+// 要订阅/取消订阅的是协议ID（cmdid）
+    repeated uint32 ids = 2;
+// 消费者唯一识别字符串key
+    string key = 3;
+}
+message SyncSubscribeInfoOffsetReply {
+    CommonReply res = 1;
+}
+
+
+
+// 获取当前集群的索引
+message AskIndexRequest {
+    uint64 index = 1;
+}
+message AskIndexReply {
+    CommonReply res = 1;
+    uint64 index = 2;
+}
+// 获取集群内已订阅信息表
+message AskSubscribedInfoRequest {
+    // 带上已有的订阅信息
+    map<uint32, uint32> data = 1;
+    // true:leader向follow请求，false:follow向leader请求
+    bool bro = 2;
+}
+message AskSubscribedInfoReply {
+    CommonReply res = 1;
+    // 返回别人的
+    map<uint32, uint32> data = 2;
+}
+// 获取集群自增后的索引值
+message AskIncreasedIndexRequest {
+}
+message AskIncreasedIndexReply {
+    CommonReply res = 1;
+    uint64 index = 2;
+}
+
+// 订阅信息更新，同步和上报使用同一个结构体
+/*message SubscribeInfoRequest {
+//    true:订阅，false:取消订阅
+    bool action = 1;
+// 要订阅/取消订阅的是协议ID（cmdid）
+    repeated uint32 ids = 2;
+// 消费者唯一识别字符串key
+    string key = 3;
+}
+message SubscribeInfoReply {
+    CommonReply res = 1;
+}*/
+
+// 新消息请求，同步和上报使用同一个结构体
+message NewMsgRequest {
+    repeated StorePack data = 1;
+}
+message NewMsgReply {
+    CommonReply res = 1;
+}
+// 新消息派发结果，同步和上报使用同一个结构体
+message LiveResultRequest {
+    repeated uint64 success = 1;
+    repeated uint64 fail = 2;
+    repeated uint64 warn = 3;
+    repeated uint64 del = 4;
+}
+message LiveResultReply {
+    CommonReply res = 1;
+}
+// 死信消息派发结果，同步和上报使用同一个结构体
+message DeadResultRequest {
+    repeated uint64 success = 1;
+    repeated StorePack fail = 2;
+    repeated uint64 warn = 3;
+    repeated uint64 del = 4;
+}
+message DeadResultReply {
+    CommonReply res = 1;
+}

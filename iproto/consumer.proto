@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package iproto;
+
+
+// protoc -Iiproto --go_out=plugins=grpc:./iproto ./iproto/consumer.proto
+message publishReply {
+    uint32 code = 1;
+    string msg = 2;
+}
+// 分发订阅的消息
+message publishRequest {
+    uint64 Index = 1;
+    bytes data = 2;
+}
+
+service Consumer {
+    rpc publish (publishRequest) returns (publishReply) {
+    }
+}
