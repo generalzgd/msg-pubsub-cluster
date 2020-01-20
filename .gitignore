@@ -1,6 +1,7 @@
 /.idea
 /logs
 /msgsubscribesvr
+/msg_subscriber
 /*.db
 /TestNewBoleStore_*
 /*.exe
