@@ -87,4 +87,4 @@ https://www.infoq.cn/article/coreos-analyse-etcd/
 ![cluster_case](./uml/cluster_case.png)
 
 ## 时序
-![](./uml/cluster_seq.png)
+![cluster_seq](./uml/cluster_seq.png)
