@@ -20,9 +20,11 @@ import (
 	`time`
 
 	`github.com/astaxie/beego/logs`
+	`github.com/golang/protobuf/proto`
 	`google.golang.org/grpc`
 	`google.golang.org/grpc/reflection`
 
+	`github.com/generalzgd/msg-subscriber/codec`
 	`github.com/generalzgd/msg-subscriber/define`
 	`github.com/generalzgd/msg-subscriber/iproto`
 	`github.com/generalzgd/msg-subscriber/sender`
@@ -92,6 +94,30 @@ func (p *Manager) Subscribe(ctx context.Context, req *iproto.SubscribeRequest) (
 	return &iproto.SubscribeReply{}, nil
 }
 
-func (p *Manager) Produce(ctx context.Context, req *iproto.ProduceRequest) (*iproto.ProduceReply, error) {
-	return &iproto.ProduceReply{}, nil
+func (p *Manager) Produce(ctx context.Context, req *iproto.ProduceRequest) (rep *iproto.ProduceReply, err error) {
+	rep = &iproto.ProduceReply{}
+
+	args := &iproto.ProduceRequest{}
+	if err = proto.Unmarshal(req.Data, args); err != nil {
+		return
+	}
+	//
+	pack := codec.NewDataPack(args.Data, headDecoder, bodyDecoder)
+	cmd, _ := pack.GetHead()
+	// 未订阅的消息一律过滤掉
+	if p.allSubscribeMap.Has(cmd) {
+		var index uint64
+		index, err = p.askIncreasedIndex()
+		if err != nil {
+			logs.Error("doReportMsg() get increased index err. %v", err)
+			return
+		}
+
+		msg := &define.FlowPack{
+			Index: index,
+			Pack:  pack,
+		}
+		p.doReportMsg(msg)
+	}
+	return
 }
