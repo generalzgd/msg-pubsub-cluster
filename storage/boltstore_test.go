@@ -29,15 +29,15 @@ var (
 	boltBucket      = "bolttest"
 	db              *BoltStore
 	flowPackFactory func(string) iface.StoreItem
-	cmdDecoder      head.Decoder
+	headDecoder     head.Decoder
 	bodyDecoder     body.Decoder
 )
 
 func init() {
-	cmdDecoder = head.NewDecoder(22, 2, 0, 4, binary.LittleEndian)
+	headDecoder = head.NewDecoder(22, 2, 0, 4, binary.LittleEndian)
 	bodyDecoder = body.NewDecoder(24, binary.LittleEndian)
 	flowPackFactory = func(str string) iface.StoreItem {
-		return define.NewFlowPack(cmdDecoder, bodyDecoder)
+		return define.NewFlowPack(headDecoder, bodyDecoder)
 	}
 	path := filepath.Join(filepath.Dir(os.Args[0]), "bolt.db")
 	db = NewBoltStore(path, flowPackFactory, boltBucket)
@@ -64,9 +64,9 @@ func TestBoltStore_GetUint64(t *testing.T) {
 }
 
 func TestBoltStore_Store(t *testing.T) {
-	pk := define.NewFlowPack(cmdDecoder, bodyDecoder)
+	pk := define.NewFlowPack(headDecoder, bodyDecoder)
 	pk.Index = 11
-	pk.Pack = codec.NewDataPack(nil, cmdDecoder, bodyDecoder)
+	pk.Pack = codec.NewDataPack(nil, headDecoder, bodyDecoder)
 
 	type args struct {
 		bucket string
@@ -96,9 +96,9 @@ func TestBoltStore_Store(t *testing.T) {
 }
 
 func TestBoltStore_StoreBatch(t *testing.T) {
-	pk := define.NewFlowPack(cmdDecoder, bodyDecoder)
+	pk := define.NewFlowPack(headDecoder, bodyDecoder)
 	pk.Index = 12
-	pk.Pack = codec.NewDataPack(nil, cmdDecoder, bodyDecoder)
+	pk.Pack = codec.NewDataPack(nil, headDecoder, bodyDecoder)
 
 	type args struct {
 		bucket string
@@ -161,13 +161,13 @@ func TestBoltStore_GetBatch(t *testing.T) {
 }
 
 func TestBoltStore_Delete(t *testing.T) {
-	pk1 := define.NewFlowPack(cmdDecoder, bodyDecoder)
+	pk1 := define.NewFlowPack(headDecoder, bodyDecoder)
 	pk1.Index = 11
-	pk1.Pack = codec.NewDataPack(nil, cmdDecoder, bodyDecoder)
+	pk1.Pack = codec.NewDataPack(nil, headDecoder, bodyDecoder)
 
-	pk2 := define.NewFlowPack(cmdDecoder, bodyDecoder)
+	pk2 := define.NewFlowPack(headDecoder, bodyDecoder)
 	pk2.Index = 12
-	pk2.Pack = codec.NewDataPack(nil, cmdDecoder, bodyDecoder)
+	pk2.Pack = codec.NewDataPack(nil, headDecoder, bodyDecoder)
 
 	type args struct {
 		bucket string
@@ -200,14 +200,14 @@ func TestBoltStore_Delete(t *testing.T) {
 }
 
 func TestBoltStore_UpdateBatch(t *testing.T) {
-	pk1 := define.NewFlowPack(cmdDecoder, bodyDecoder)
+	pk1 := define.NewFlowPack(headDecoder, bodyDecoder)
 	pk1.Index = 12
 	pk1.Peers = map[string]uint32{
 		"booker1": 2,
 		"booker2": 1,
 		"booker3": 1,
 	}
-	pk1.Pack = codec.NewDataPack(nil, cmdDecoder, bodyDecoder)
+	pk1.Pack = codec.NewDataPack(nil, headDecoder, bodyDecoder)
 
 	type args struct {
 		bucket string

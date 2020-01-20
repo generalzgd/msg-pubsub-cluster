@@ -39,7 +39,7 @@ func prepareManagerData(queue iface.IStoreBridge) {
 		Body:   bts,
 	}
 
-	pk := codec.NewDataPack(postPk.Serialize(), cmdDecoder, bodyDecoder)
+	pk := codec.NewDataPack(postPk.Serialize(), headDecoder, bodyDecoder)
 
 	li := []iface.StoreItem{&define.FlowPack{
 		Index: 1,

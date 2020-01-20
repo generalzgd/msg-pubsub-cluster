@@ -38,9 +38,9 @@ func TestFlowPack_ToStorePack(t *testing.T) {
 		ToIp:   0,
 		Body:   by,
 	}
-	cmdDecoder := head.NewDecoder(22, 2, 0, 4, binary.LittleEndian)
+	headDecoder := head.NewDecoder(22, 2, 0, 4, binary.LittleEndian)
 	bodyDecoder := body.NewDecoder(24, binary.LittleEndian)
-	pk := codec.NewDataPack(postPk.Serialize(), cmdDecoder, bodyDecoder)
+	pk := codec.NewDataPack(postPk.Serialize(), headDecoder, bodyDecoder)
 
 	type fields struct {
 		Index      uint64
@@ -79,7 +79,7 @@ func TestFlowPack_ToStorePack(t *testing.T) {
 			got := p.ToStorePack()
 			t.Logf("ToStorePack() = %v", got)
 			//
-			to := NewFlowPack(cmdDecoder, bodyDecoder)
+			to := NewFlowPack(headDecoder, bodyDecoder)
 			to.FromStorePack(got)
 			t.Logf("GetCmdStr() = %v, from = %v", to.GetCmdStr(), to.Pack.String())
 		})

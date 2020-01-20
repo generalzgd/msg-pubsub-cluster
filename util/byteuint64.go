@@ -27,3 +27,33 @@ func Uint64ToBytes(u uint64) []byte {
 	binary.BigEndian.PutUint64(buf, u)
 	return buf
 }
+
+
+func GetIntFromBuf(buf []byte, pos, size int, order binary.ByteOrder) int {
+	start := buf[pos:]
+	val := 0
+	switch size {
+	case 1:
+		val = int(start[0])
+	case 2:
+		val = int(order.Uint16(start))
+	case 4:
+		val = int(order.Uint32(start))
+	case 8:
+		val = int(order.Uint64(start))
+	}
+	return val
+}
+
+func SetIntToBuf(buf []byte, pos, size, val int, order binary.ByteOrder) {
+	switch size {
+	case 1:
+		buf[pos] = byte(val)
+	case 2:
+		order.PutUint16(buf[pos:], uint16(val))
+	case 4:
+		order.PutUint32(buf[pos:], uint32(val))
+	case 8:
+		order.PutUint64(buf[pos:], uint64(val))
+	}
+}

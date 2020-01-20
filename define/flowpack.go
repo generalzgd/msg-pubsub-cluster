@@ -36,14 +36,14 @@ type FlowPack struct {
 	Pack       *codec.DataPack
 	RecordTime int64 // 记录时间戳
 	//
-	cmdDecoder  head.Decoder
+	headDecoder head.Decoder
 	bodyDecoder body.Decoder
 }
 
-func NewFlowPack(cmdDecoder head.Decoder, bodyDecoder body.Decoder) *FlowPack {
+func NewFlowPack(headDecoder head.Decoder, bodyDecoder body.Decoder) *FlowPack {
 	return &FlowPack{
 		Peers:       map[string]uint32{},
-		cmdDecoder:  cmdDecoder,
+		headDecoder: headDecoder,
 		bodyDecoder: bodyDecoder,
 	}
 }
@@ -215,7 +215,7 @@ func (p *FlowPack) FromStorePack(from iproto.StorePack) {
 	p.Index = from.Index
 	p.Peers = from.Peers
 	//p.Data = from.Data
-	p.Pack = codec.NewDataPack(from.Data, p.cmdDecoder, p.bodyDecoder)
+	p.Pack = codec.NewDataPack(from.Data, p.headDecoder, p.bodyDecoder)
 	p.RecordTime = from.RecordTime
 }
 

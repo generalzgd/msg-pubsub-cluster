@@ -22,17 +22,17 @@ import (
 
 //
 type DataPack struct {
-	len int
+	len         int
 	cmdId       int
 	data        []byte
-	cmdDecoder  head.Decoder
+	headDecoder head.Decoder
 	bodyDecoder body.Decoder
 }
 
-func NewDataPack(data []byte, cmdDecoder head.Decoder, bodyDecoder body.Decoder) *DataPack {
+func NewDataPack(data []byte, headDecoder head.Decoder, bodyDecoder body.Decoder) *DataPack {
 	return &DataPack{
 		data:        data,
-		cmdDecoder:  cmdDecoder,
+		headDecoder: headDecoder,
 		bodyDecoder: bodyDecoder,
 	}
 }
@@ -49,7 +49,7 @@ func (p *DataPack) GetHead() (int,int) {
 	if p.cmdId > 0 {
 		return p.cmdId, p.len
 	}
-	cmd, ll, err := p.cmdDecoder.Read(p.data)
+	cmd, ll, err := p.headDecoder.Read(p.data)
 	if err != nil {
 		logs.Error("GetCmdId() got err=(%v)", err)
 		return 0,0
@@ -61,7 +61,7 @@ func (p *DataPack) GetHead() (int,int) {
 
 func (p *DataPack) SetHead(cmd, len int) {
 	if cmd > 0 {
-		err := p.cmdDecoder.Write(p.data, cmd, len)
+		err := p.headDecoder.Write(p.data, cmd, len)
 		if err != nil {
 			logs.Error("SetCmdId() got err=(%v)", err)
 		}

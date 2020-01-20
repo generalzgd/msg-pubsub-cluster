@@ -46,7 +46,7 @@ const (
 )
 
 var (
-	cmdDecoder  head.Decoder
+	headDecoder head.Decoder
 	bodyDecoder body.Decoder
 )
 
@@ -88,7 +88,7 @@ func NewManager() *Manager {
 func (p *Manager) Init(cfg config.AppConfig) error {
 	p.cfg = cfg
 	//
-	cmdDecoder = head.NewDecoder(cfg.Decode.CmdPos, cfg.Decode.CmdSize, cfg.Decode.LenPos, cfg.Decode.LenSize, binary.LittleEndian)
+	headDecoder = head.NewDecoder(cfg.Decode.CmdPos, cfg.Decode.CmdSize, cfg.Decode.LenPos, cfg.Decode.LenSize, binary.LittleEndian)
 	bodyDecoder = body.NewDecoder(cfg.Decode.HeadSize, binary.LittleEndian)
 	//
 	buckets := []string{IndexFlow, ReportFlow, LeaderFlow, WorkFlow, DeadFlow}
@@ -97,7 +97,7 @@ func (p *Manager) Init(cfg config.AppConfig) error {
 		if bucket == IndexFlow {
 			return &define.IndexPack{}
 		}
-		return define.NewFlowPack(cmdDecoder, bodyDecoder)
+		return define.NewFlowPack(headDecoder, bodyDecoder)
 	}, buckets...)
 
 	p.indexQueue = storage.NewStoreBridge(IndexFlow, storeOperator)
@@ -294,7 +294,7 @@ func StoreItemToStorePack(in ...iface.StoreItem) []*iproto.StorePack {
 func StorePackToStoreItem(in ...*iproto.StorePack) []iface.StoreItem {
 	out := make([]iface.StoreItem, len(in))
 	for i, v := range in {
-		p := define.NewFlowPack(cmdDecoder, bodyDecoder)
+		p := define.NewFlowPack(headDecoder, bodyDecoder)
 		p.FromStorePack(*v)
 		out[i] = p
 	}

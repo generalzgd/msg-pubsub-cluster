@@ -89,7 +89,7 @@ func TestManager_onSubscribeHandler(t *testing.T) {
 		CmdId:  7681,
 		Body:   bts,
 	}
-	pk := codec.NewDataPack(postPack.Serialize(), cmdDecoder, bodyDecoder)
+	pk := codec.NewDataPack(postPack.Serialize(), headDecoder, bodyDecoder)
 
 	type args struct {
 		conn iface.IPackSender
@@ -127,7 +127,7 @@ func TestManager_onUnsubscribeHandler(t *testing.T) {
 		CmdId:  7681,
 		Body:   bts,
 	}
-	pk := codec.NewDataPack(postPack.Serialize(), cmdDecoder, bodyDecoder)
+	pk := codec.NewDataPack(postPack.Serialize(), headDecoder, bodyDecoder)
 
 	type args struct {
 		conn iface.IPackSender
@@ -173,7 +173,7 @@ func TestManager_onPostMsgHandler(t *testing.T) {
 		CmdId:  7681,
 		Body:   bts,
 	}
-	pk := codec.NewDataPack(postPack.Serialize(), cmdDecoder, bodyDecoder)
+	pk := codec.NewDataPack(postPack.Serialize(), headDecoder, bodyDecoder)
 
 	type args struct {
 		conn iface.IPackSender

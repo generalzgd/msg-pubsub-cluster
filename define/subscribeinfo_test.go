@@ -22,7 +22,7 @@ import (
 )
 
 func TestSubscribeInfo_Send(t *testing.T) {
-	cmdDecoder := head.NewDecoder(22, 2, 0, 4, binary.LittleEndian)
+	headDecoder := head.NewDecoder(22, 2, 0, 4, binary.LittleEndian)
 	bodyDecoder := body.NewDecoder(24, binary.LittleEndian)
 	type fields struct {
 		FromType    iface.SubscribeType
@@ -46,7 +46,7 @@ func TestSubscribeInfo_Send(t *testing.T) {
 				ConsumerKey: "abc",
 				Sender:      nil, // sender.NewTcpSender("abc", 1, "127.0.0.1:10000", nil),
 			},
-			args:    args{item: NewFlowPack(cmdDecoder, bodyDecoder)},
+			args:    args{item: NewFlowPack(headDecoder, bodyDecoder)},
 			wantErr: true,
 		},
 		{
@@ -56,7 +56,7 @@ func TestSubscribeInfo_Send(t *testing.T) {
 				ConsumerKey: "abc",
 				Sender:      nil, // sender.NewGrpcSender("abc", "127.0.0.1:10000", "127.0.0.1:10000", nil),
 			},
-			args:    args{item: NewFlowPack(cmdDecoder, bodyDecoder)},
+			args:    args{item: NewFlowPack(headDecoder, bodyDecoder)},
 			wantErr: true,
 		},
 	}

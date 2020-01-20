@@ -135,7 +135,7 @@ func TestManager_doReportMsg(t *testing.T) {
 		Body:   contents,
 	}
 
-	pk := codec.NewDataPack(postPk.Serialize(), cmdDecoder, bodyDecoder)
+	pk := codec.NewDataPack(postPk.Serialize(), headDecoder, bodyDecoder)
 
 	type args struct {
 		list []iface.StoreItem
@@ -211,7 +211,7 @@ func TestManager_doPublishMsg(t *testing.T) {
 		Body:   contents,
 	}
 
-	pk := codec.NewDataPack(postPk.Serialize(), cmdDecoder, bodyDecoder)
+	pk := codec.NewDataPack(postPk.Serialize(), headDecoder, bodyDecoder)
 
 	type args struct {
 		list []iface.StoreItem
@@ -255,7 +255,7 @@ func TestManager_doRepublishMsg(t *testing.T) {
 		Body:   contents,
 	}
 
-	pk := codec.NewDataPack(postPk.Serialize(), cmdDecoder, bodyDecoder)
+	pk := codec.NewDataPack(postPk.Serialize(), headDecoder, bodyDecoder)
 
 	type args struct {
 		list []iface.StoreItem

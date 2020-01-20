@@ -15,7 +15,6 @@ package mgr
 import (
 	`encoding/json`
 	`fmt`
-	`net`
 	`time`
 
 	`github.com/astaxie/beego/logs`
@@ -37,24 +36,16 @@ func (p *Manager) StartTcpWork() error {
 		PacketReceiveChanLimit: uint32(p.cfg.PostCfg.GetReceiveChanLimit()),
 	}
 
-	tcpAddr, err := net.ResolveTCPAddr("tcp4", p.cfg.PostCfg.GetListenAddr())
-	if err != nil {
-		logs.Error("Resolve tcp addr fail: ", tcpAddr)
-		return err
-	}
-
-	listener, err := net.ListenTCP("tcp", tcpAddr)
-	if err != nil {
-		logs.Warning("Listen tcp fail: ", tcpAddr.String())
-		return err
-	}
-
-	recv := &receive.TcpReceiver{Callback: p}
-	svr := gotcp.NewServer(limitCfg, recv, &receive.TcpProtocol{})
-	recv.Svr = svr
+	recv := receive.NewTcpReceiver(p)
+	recv.SetExcludeIp(p.cfg.ExcludeIp...)
+	recv.Start(limitCfg, p.cfg.PostCfg.GetListenAddr(), &receive.TcpProtocol{
+		HeadSize:  p.cfg.Decode.HeadSize,
+		LenPos:    p.cfg.Decode.LenPos,
+		LenSize:   p.cfg.Decode.LenSize,
+		HeadCodec: headDecoder,
+		BodyCodec: bodyDecoder,
+	})
 	p.TcpReceiver = recv
-	go svr.Start(listener, time.Second)
-	logs.Info("Start listen:", listener.Addr())
 	return nil
 }
 
@@ -90,7 +81,7 @@ func (p *Manager) OnClose(conn iface.IPackSender) {
 }
 
 func (p *Manager) OnMessage(conn iface.IPackSender, pack gotcp.Packet) {
-	dataPack := codec.NewDataPack(pack.Serialize(), cmdDecoder, bodyDecoder)
+	dataPack := codec.NewDataPack(pack.Serialize(), headDecoder, bodyDecoder)
 	//
 	cmd,_ := dataPack.GetHead()
 
@@ -242,7 +233,7 @@ func (p *Manager) onUnsubscribeHandler(conn iface.IPackSender, pack *codec.DataP
 func (p *Manager) onTcpMsgHandler(conn iface.IPackSender, pack *codec.DataPack) {
 	//logs.Debug("onPostMsgHandler() got: %d, %s", connId, pack.String())
 
-	//pack := codec.NewDataPack(postPack.Serialize(), cmdDecoder, bodyDecoder)
+	//pack := codec.NewDataPack(postPack.Serialize(), headDecoder, bodyDecoder)
 
 	exclude := []int{7681, 7682, 7683, 7684}
 	cmd, _ := pack.GetHead()
@@ -257,7 +248,7 @@ func (p *Manager) onTcpMsgHandler(conn iface.IPackSender, pack *codec.DataPack) 
 			return
 		}
 
-		msg := define.NewFlowPack(cmdDecoder, bodyDecoder)
+		msg := define.NewFlowPack(headDecoder, bodyDecoder)
 		msg.Index = index
 		msg.Pack = pack
 
