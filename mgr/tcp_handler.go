@@ -20,7 +20,6 @@ import (
 	`github.com/astaxie/beego/logs`
 	zgdSlice `github.com/generalzgd/comm-libs/slice`
 	gotcp `github.com/generalzgd/securegotcp`
-	`github.com/toolkits/slice`
 
 	`github.com/generalzgd/msg-subscriber/codec`
 	`github.com/generalzgd/msg-subscriber/define`
@@ -58,7 +57,7 @@ func (p *Manager) OnConnect(iface.IPackSender) {
 
 func (p *Manager) OnClose(conn iface.IPackSender) {
 	connId := conn.GetConnId()
-	logs.Debug("OnClose(%d, %d, %v)", connId, conn)
+	logs.Debug("OnClose(%d, %v)", connId, conn.GetAddress())
 
 	v, ok := p.postId2Subscriber.Load(connId)
 	if !ok {
@@ -83,7 +82,11 @@ func (p *Manager) OnClose(conn iface.IPackSender) {
 func (p *Manager) OnMessage(conn iface.IPackSender, pack gotcp.Packet) {
 	dataPack := codec.NewDataPack(pack.Serialize(), headDecoder, bodyDecoder)
 	//
-	cmd,_ := dataPack.GetHead()
+	cmd := dataPack.GetCmdId()
+	if cmd < 1 {
+		logs.Error("OnMessage() got err=[empty cmdid]")
+		return
+	}
 
 	handlers := map[int]func(iface.IPackSender, *codec.DataPack){
 		7681: p.onSubscribeHandler,
@@ -132,7 +135,7 @@ func (p *Manager) onSubscribeHandler(conn iface.IPackSender, pack *codec.DataPac
 		connId = conn.GetConnId()
 		address = conn.GetAddress()
 	}
-	//remoteAddr := sender.GetAddress()
+	// remoteAddr := sender.GetAddress()
 	info := &define.SubscribeInfo{
 		FromType:    define.SubscribeTypeTcp,
 		ConsumerKey: args.ConsumerKey,
@@ -176,8 +179,8 @@ func (p *Manager) doneSubscribe(cmdIds []int, consumer iface.IConsumer) {
 func (p *Manager) doneUnsubscribe(cmdIds []int, consumer iface.IConsumer) {
 	cmdIds = p.subscribeMap.Del(cmdIds, consumer)
 	if len(cmdIds) > 0 {
-		//raft同步的时候会处理
-		//p.allSubscribeMap.Del(cmdIds...)
+		// raft同步的时候会处理
+		// p.allSubscribeMap.Del(cmdIds...)
 		//
 		if consumer.GetType() == define.SubscribeTypeTcp {
 			p.postId2Subscriber.Delete(consumer.GetConnId())
@@ -188,7 +191,7 @@ func (p *Manager) doneUnsubscribe(cmdIds []int, consumer iface.IConsumer) {
 }
 
 func (p *Manager) onUnsubscribeHandler(conn iface.IPackSender, pack *codec.DataPack) {
-	//logs.Debug("onUnsubscribeHandler() got=%s", pack.String())
+	logs.Debug("onUnsubscribeHandler() got=%s", pack.String())
 	var err error
 	defer func() {
 		resp := define.UnsubscribeAck{}
@@ -231,17 +234,13 @@ func (p *Manager) onUnsubscribeHandler(conn iface.IPackSender, pack *codec.DataP
 
 // 收到消息, 存入上报队列中
 func (p *Manager) onTcpMsgHandler(conn iface.IPackSender, pack *codec.DataPack) {
-	//logs.Debug("onPostMsgHandler() got: %d, %s", connId, pack.String())
-
-	//pack := codec.NewDataPack(postPack.Serialize(), headDecoder, bodyDecoder)
-
-	exclude := []int{7681, 7682, 7683, 7684}
-	cmd, _ := pack.GetHead()
-	if slice.ContainsInt(exclude, cmd) {
+	/*exclude := []int{gocmd.ID_SubscribeReq, gocmd.ID_UnsubscribeReq, gocmd.ID_SubscribeAck, gocmd.ID_UnsubscribeAck, gocmd.ID_Keeplive}
+	if slice.ContainsInt(exclude, pack.GetCmdId()) {
 		return
-	}
+	}*/
+	logs.Debug("onPostMsgHandler() got= %s", pack.String())
 	// 未订阅的消息一律过滤掉
-	if p.allSubscribeMap.Has(cmd) {
+	if p.allSubscribeMap.Has(pack.GetCmdId()) {
 		index, err := p.askIncreasedIndex()
 		if err != nil {
 			logs.Error("doReportMsg() get increased index err. %v", err)

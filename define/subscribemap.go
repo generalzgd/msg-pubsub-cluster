@@ -21,37 +21,33 @@ import (
 // ********************************
 // 当前节点的订阅信息，单条信息可订阅多个消费者
 type SubscribeMap struct {
-	lock sync.RWMutex
-	// 协议ID转consumer
-	id2Consumer map[int][]iface.IConsumer
-	//
+	lock        sync.RWMutex
+	id2Consumer map[int]map[string]iface.IConsumer // 协议ID=>consumerKey=>consumer
 	// consumer key转协议ID
 	consumer2Ids map[string]map[int]struct{} // 节点对应协议id, {NodeKey: CmdId:struct}
-	// consumer key 转consumer
-	key2Consumer map[string]iface.IConsumer
+	key2Consumer map[string]iface.IConsumer  // consumer key 转consumer
 }
 
 func NewSubscribeMap() *SubscribeMap {
 	return &SubscribeMap{
-		//cmdMap:   map[string][]*SubscribeInfo{},
-		id2Consumer:  map[int][]iface.IConsumer{},
+		id2Consumer:  map[int]map[string]iface.IConsumer{},
 		consumer2Ids: map[string]map[int]struct{}{},
 		key2Consumer: map[string]iface.IConsumer{},
 	}
 }
 
 // 只要找到一个包含
-func (p *SubscribeMap) has(list []iface.IConsumer, tar iface.IConsumer) bool {
+/*func (p *SubscribeMap) has(list []iface.IConsumer, tar iface.IConsumer) bool {
 	for _, it := range list {
 		if it.Equal(tar) {
 			return true
 		}
 	}
 	return false
-}
+}*/
 
 // 只删除找到的第一个
-func (p *SubscribeMap) remove(list []iface.IConsumer, tar iface.IConsumer) ([]iface.IConsumer, bool) {
+/*func (p *SubscribeMap) remove(list []iface.IConsumer, tar iface.IConsumer) ([]iface.IConsumer, bool) {
 	for i, it := range list {
 		if it.Equal(tar) {
 			// 删除最后一个
@@ -63,7 +59,7 @@ func (p *SubscribeMap) remove(list []iface.IConsumer, tar iface.IConsumer) ([]if
 		}
 	}
 	return list, false
-}
+}*/
 
 func (p *SubscribeMap) Put(ids []int, v iface.IConsumer) []int {
 	p.lock.Lock()
@@ -73,33 +69,29 @@ func (p *SubscribeMap) Put(ids []int, v iface.IConsumer) []int {
 	for _, id := range ids {
 		m, ok := p.id2Consumer[id]
 		if ok {
-			if !p.has(m, v) {
-				m = append(m, v)
-				p.id2Consumer[id] = m
-				putted = append(putted, id)
-			}
+			m[v.GetKey()] = v
 		} else {
-			p.id2Consumer[id] = []iface.IConsumer{v}
-			putted = append(putted, id)
+			m = map[string]iface.IConsumer{
+				v.GetKey(): v,
+			}
 		}
+		p.id2Consumer[id] = m
 	}
 	//
-	if len(putted) > 0 {
-		k := v.GetKey()
-		m, ok := p.consumer2Ids[k]
-		if !ok {
-			m = map[int]struct{}{}
-		}
-		for _, id := range putted {
-			m[id] = struct{}{}
-		}
-		p.consumer2Ids[k] = m
-		//
-		if t, ok := p.key2Consumer[k]; !ok || !t.Equal(v) {
-			p.key2Consumer[k] = v
-		}
+	k := v.GetKey()
+	m, ok := p.consumer2Ids[k]
+	if !ok {
+		m = map[int]struct{}{}
 	}
-	return putted
+	for _, id := range putted {
+		m[id] = struct{}{}
+	}
+	p.consumer2Ids[k] = m
+	//
+	if t, ok := p.key2Consumer[k]; !ok || !t.Equal(v) {
+		p.key2Consumer[k] = v
+	}
+	return ids
 }
 
 func (p *SubscribeMap) Del(ids []int, v iface.IConsumer) []int {
@@ -110,14 +102,13 @@ func (p *SubscribeMap) Del(ids []int, v iface.IConsumer) []int {
 	for _, id := range ids {
 		if m, ok := p.id2Consumer[id]; ok {
 			if ok {
-				if l, ok := p.remove(m, v); ok {
-					if len(l) > 0 {
-						p.id2Consumer[id] = l
-					} else {
-						delete(p.id2Consumer, id)
-					}
-					removed = append(removed, id)
+				delete(m, v.GetKey())
+				if len(m) < 1 {
+					delete(p.id2Consumer, id)
+				} else {
+					p.id2Consumer[id] = m
 				}
+				removed = append(removed, id)
 			}
 		}
 	}
@@ -148,7 +139,11 @@ func (p *SubscribeMap) GetConsumer(id int) ([]iface.IConsumer, bool) {
 	defer p.lock.RUnlock()
 	m, ok := p.id2Consumer[id]
 	if ok {
-		return m, ok
+		out := make([]iface.IConsumer,0,len(m))
+		for _, it := range m {
+			out = append(out, it)
+		}
+		return out, ok
 	}
 	return nil, false
 }

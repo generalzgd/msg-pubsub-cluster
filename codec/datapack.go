@@ -13,23 +13,22 @@
 package codec
 
 import (
+	`fmt`
+
 	`github.com/astaxie/beego/logs`
 
-	`github.com/generalzgd/msg-subscriber/codec/body`
 	`github.com/generalzgd/msg-subscriber/codec/cmdstr`
-	`github.com/generalzgd/msg-subscriber/codec/head`
 )
 
 //
 type DataPack struct {
-	len         int
 	cmdId       int
 	data        []byte
-	headDecoder head.Decoder
-	bodyDecoder body.Decoder
+	headDecoder IHeadCodec
+	bodyDecoder IBodyCodec
 }
 
-func NewDataPack(data []byte, headDecoder head.Decoder, bodyDecoder body.Decoder) *DataPack {
+func NewDataPack(data []byte, headDecoder IHeadCodec, bodyDecoder IBodyCodec) *DataPack {
 	return &DataPack{
 		data:        data,
 		headDecoder: headDecoder,
@@ -45,23 +44,22 @@ func (p *DataPack) GetData() []byte {
 	return p.data
 }
 
-func (p *DataPack) GetHead() (int,int) {
+func (p *DataPack) GetCmdId() int {
 	if p.cmdId > 0 {
-		return p.cmdId, p.len
+		return p.cmdId
 	}
-	cmd, ll, err := p.headDecoder.Read(p.data)
+	val, _, err := p.headDecoder.Read(p.data)
 	if err != nil {
 		logs.Error("GetCmdId() got err=(%v)", err)
-		return 0,0
+		return 0
 	}
-	p.cmdId = cmd
-	p.len = ll
-	return cmd, ll
+	p.cmdId = val
+	return val
 }
 
-func (p *DataPack) SetHead(cmd, len int) {
+func (p *DataPack) SetHead(cmd, l int) {
 	if cmd > 0 {
-		err := p.headDecoder.Write(p.data, cmd, len)
+		err := p.headDecoder.Write(p.data, cmd, l)
 		if err != nil {
 			logs.Error("SetCmdId() got err=(%v)", err)
 		}
@@ -96,10 +94,15 @@ func (p *DataPack) SetPackBody(data []byte) {
 
 // todo head + body
 func (p *DataPack) String() string {
+	cmd, ll, err := p.headDecoder.Read(p.data)
+	if err != nil {
+		logs.Error("GetCmdId() got err=(%v)", err)
+		return ""
+	}
 	val, err := p.bodyDecoder.Read(p.data)
 	if err != nil {
 		logs.Error("GetCmdId() got err=(%v)", err)
 		return ""
 	}
-	return string(val)
+	return fmt.Sprintf("cmd=%v, len=%v, body=%v", cmd, ll, string(val))
 }

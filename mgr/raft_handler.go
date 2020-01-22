@@ -148,9 +148,9 @@ func (p *Manager) onRaftSubscribeInfoOffset(data *any.Any) error {
 	}
 	if len(args.Ids) > 0 {
 		if args.Action {
-			p.allSubscribeMap.Put(util.Uint32ToInt(args.Ids...)...)
+			p.allSubscribeMap.Put(args.NodeId, args.Key, util.Uint32ToInt(args.Ids...))
 		} else {
-			p.allSubscribeMap.Del(util.Uint32ToInt(args.Ids...)...)
+			p.allSubscribeMap.Del(args.NodeId, args.Key, util.Uint32ToInt(args.Ids...))
 		}
 	}
 	return nil

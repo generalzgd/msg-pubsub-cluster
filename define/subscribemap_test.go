@@ -109,118 +109,6 @@ var (
 	mp = NewSubscribeMap()
 )
 
-func TestSubscribeMap_has(t *testing.T) {
-	list := []iface.IConsumer{
-		&SubscribeInfo{
-			FromType:    0,
-			ConsumerKey: "a",
-		},
-		&SubscribeInfo{
-			FromType:    0,
-			ConsumerKey: "b",
-		},
-	}
-	type args struct {
-		list []iface.IConsumer
-		tar  iface.IConsumer
-	}
-	tests := []struct {
-		name string
-		args args
-		want bool
-	}{
-		// TODO: Add test cases.
-		{
-			name: "TestSubscribeMap_has_1",
-			args: args{
-				list: list,
-				tar:  list[0],
-			},
-			want: true,
-		},
-		{
-			name: "TestSubscribeMap_has_2",
-			args: args{
-				list: list,
-				tar: &SubscribeInfo{
-					ConsumerKey: "c",
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := mp.has(tt.args.list, tt.args.tar); got != tt.want {
-				t.Errorf("has() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestSubscribeMap_remove(t *testing.T) {
-	a :=
-		&SubscribeInfo{
-			FromType:    0,
-			ConsumerKey: "a",
-		}
-	b := &SubscribeInfo{
-		FromType:    0,
-		ConsumerKey: "b",
-	}
-	type args struct {
-		list []iface.IConsumer
-		tar  iface.IConsumer
-	}
-	tests := []struct {
-		name  string
-		args  args
-		want  []iface.IConsumer
-		want1 bool
-	}{
-		// TODO: Add test cases.
-		{
-			name: "TestSubscribeMap_remove_1",
-			args: args{
-				list: []iface.IConsumer{a, b},
-				tar:  a,
-			},
-			want:  []iface.IConsumer{b},
-			want1: true,
-		},
-		{
-			name: "TestSubscribeMap_remove_2",
-			args: args{
-				list: []iface.IConsumer{a, b},
-				tar:  b,
-			},
-			want:  []iface.IConsumer{a},
-			want1: true,
-		},
-		{
-			name: "TestSubscribeMap_remove_3",
-			args: args{
-				list: []iface.IConsumer{a, b},
-				tar: &SubscribeInfo{
-					ConsumerKey: "c",
-				},
-			},
-			want:  []iface.IConsumer{a, b},
-			want1: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := mp.remove(tt.args.list, tt.args.tar)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("remove() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("remove() got1 = %v, want %v", got1, tt.want1)
-			}
-		})
-	}
-}
-
 func TestSubscribeMap_Put(t *testing.T) {
 	type args struct {
 		ids []int
@@ -250,7 +138,7 @@ func TestSubscribeMap_Put(t *testing.T) {
 					ConsumerKey: "a",
 				},
 			},
-			want: []int{},
+			want: []int{1},
 		},
 		{
 			name: "TestSubscribeMap_Put_3", // 部分加入成功
@@ -260,7 +148,7 @@ func TestSubscribeMap_Put(t *testing.T) {
 					ConsumerKey: "a",
 				},
 			},
-			want: []int{4},
+			want: []int{1, 4},
 		},
 		{
 			name: "TestSubscribeMap_Put_4", // 同杨的协议，不同的订阅者

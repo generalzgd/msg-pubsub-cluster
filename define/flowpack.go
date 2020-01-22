@@ -21,9 +21,7 @@ import (
 	`github.com/google/btree`
 
 	`github.com/generalzgd/msg-subscriber/codec`
-	`github.com/generalzgd/msg-subscriber/codec/body`
 	`github.com/generalzgd/msg-subscriber/codec/cmdstr`
-	`github.com/generalzgd/msg-subscriber/codec/head`
 	`github.com/generalzgd/msg-subscriber/iface`
 	`github.com/generalzgd/msg-subscriber/iproto`
 )
@@ -36,11 +34,11 @@ type FlowPack struct {
 	Pack       *codec.DataPack
 	RecordTime int64 // 记录时间戳
 	//
-	headDecoder head.Decoder
-	bodyDecoder body.Decoder
+	headDecoder codec.IHeadCodec
+	bodyDecoder codec.IBodyCodec
 }
 
-func NewFlowPack(headDecoder head.Decoder, bodyDecoder body.Decoder) *FlowPack {
+func NewFlowPack(headDecoder codec.IHeadCodec, bodyDecoder codec.IBodyCodec) *FlowPack {
 	return &FlowPack{
 		Peers:       map[string]uint32{},
 		headDecoder: headDecoder,
@@ -61,8 +59,8 @@ func (p *FlowPack) SetRecordTime(t int64) {
 }
 
 func (p *FlowPack) GetCmdId() int {
-	v, _ := p.Pack.GetHead()
-	return v
+	return p.Pack.GetCmdId()
+	//return v
 }
 
 // 是否过期

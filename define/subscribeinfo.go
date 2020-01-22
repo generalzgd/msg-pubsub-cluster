@@ -31,6 +31,9 @@ type SubscribeInfo struct {
 }
 
 func (p *SubscribeInfo) GetConnId() uint32 {
+	if p.Sender == nil {
+		return 0
+	}
 	return p.Sender.GetConnId()
 }
 
@@ -39,6 +42,9 @@ func (p *SubscribeInfo) GetType() iface.SubscribeType {
 }
 
 func (p *SubscribeInfo) GetAddress() string {
+	if p.Sender == nil {
+		return ""
+	}
 	return p.Sender.GetAddress()
 }
 

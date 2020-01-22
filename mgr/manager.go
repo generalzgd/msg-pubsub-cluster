@@ -25,6 +25,7 @@ import (
 	_ `github.com/generalzgd/grpc-svr-frame/grpc-consul`
 	ctrl `github.com/generalzgd/grpc-svr-frame/grpc-ctrl`
 
+	`github.com/generalzgd/msg-subscriber/codec`
 	`github.com/generalzgd/msg-subscriber/codec/body`
 	`github.com/generalzgd/msg-subscriber/codec/head`
 	`github.com/generalzgd/msg-subscriber/config`
@@ -46,8 +47,8 @@ const (
 )
 
 var (
-	headDecoder head.Decoder
-	bodyDecoder body.Decoder
+	headDecoder codec.IHeadCodec
+	bodyDecoder codec.IBodyCodec
 )
 
 type Manager struct {

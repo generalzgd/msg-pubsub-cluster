@@ -26,8 +26,6 @@ import (
 	gotcp `github.com/generalzgd/securegotcp`
 
 	`github.com/generalzgd/msg-subscriber/codec`
-	`github.com/generalzgd/msg-subscriber/codec/body`
-	`github.com/generalzgd/msg-subscriber/codec/head`
 	`github.com/generalzgd/msg-subscriber/iface`
 	`github.com/generalzgd/msg-subscriber/util`
 )
@@ -36,8 +34,8 @@ type TcpProtocol struct {
 	HeadSize  int
 	LenPos    int
 	LenSize   int
-	HeadCodec head.Decoder
-	BodyCodec body.Decoder
+	HeadCodec codec.IHeadCodec
+	BodyCodec codec.IBodyCodec
 }
 
 func (p *TcpProtocol) ReadPacket(conn net.Conn) (gotcp.Packet, error) {
@@ -101,7 +99,6 @@ type IReceiveCallback interface {
 //
 type TcpReceiver struct {
 	Callback IReceiveCallback
-	Svr      *gotcp.Server
 	//
 	svr     *gotcp.Server
 	lock    sync.RWMutex

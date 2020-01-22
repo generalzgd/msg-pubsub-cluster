@@ -52,7 +52,7 @@ func (p *Manager) onRaftApply(ctx context.Context, req *plugin.CallRequest) (rep
 		logs.Debug("onRaftApply() got err=[%v]", err)
 		return
 	} else {
-		//logs.Debug("onRaftApply() got req=[%v]", args.Data)
+		// logs.Debug("onRaftApply() got req=[%v]", args.Data)
 	}
 
 	err = p.CallLeaderApply(args.Cmd, args.Data)
@@ -61,7 +61,7 @@ func (p *Manager) onRaftApply(ctx context.Context, req *plugin.CallRequest) (rep
 
 // 响应自己的索引值
 func (p *Manager) onRpcCollectClusterIndex(ctx context.Context, req *plugin.CallRequest) (rep *plugin.CallReply, err error) {
-	//logs.Debug("onRpcCollectClusterIndex() got=%v", req)
+	// logs.Debug("onRpcCollectClusterIndex() got=%v", req)
 	rep = &plugin.CallReply{
 		Cmd: req.Cmd,
 		Id:  req.Id,
@@ -76,7 +76,7 @@ func (p *Manager) onRpcCollectClusterIndex(ctx context.Context, req *plugin.Call
 		logs.Error("onRpcCollectClusterIndex() got err=%v", err)
 		return
 	}
-	//logs.Debug("onRpcCollectClusterIndex() return=%v", obj)
+	// logs.Debug("onRpcCollectClusterIndex() return=%v", obj)
 	rep.Data = buf
 	return
 }
@@ -93,7 +93,7 @@ func (p *Manager) onRpcAskIndex(ctx context.Context, req *plugin.CallRequest) (r
 		logs.Error("onRpcAskIndex() got err=%v", err)
 		return
 	} else {
-		//logs.Debug("onRpcAskIndex() got req=%v", args)
+		// logs.Debug("onRpcAskIndex() got req=%v", args)
 	}
 	// 同步索引
 	if args.Index > p.GetIndex() {
@@ -110,7 +110,7 @@ func (p *Manager) onRpcAskIndex(ctx context.Context, req *plugin.CallRequest) (r
 		logs.Error("onRpcAskIndex() got err=%v", err)
 		return
 	}
-	//logs.Debug("onRpcAskIndex() return=%v", out)
+	// logs.Debug("onRpcAskIndex() return=%v", out)
 	rep.Data = bts
 	return
 }
@@ -139,7 +139,7 @@ func (p *Manager) onRpcAskIncreasedIndex(ctx context.Context, req *plugin.CallRe
 		logs.Error("onRpcAskIncreasedIndex() got err=%v", err)
 		return
 	}
-	//logs.Debug("onRpcAskIncreasedIndex() return=%v", out)
+	// logs.Debug("onRpcAskIncreasedIndex() return=%v", out)
 	rep.Data = bts
 	return
 }
@@ -155,7 +155,7 @@ func (p *Manager) onRpcAskSubscribedInfo(ctx context.Context, req *plugin.CallRe
 		logs.Error("onRpcAskSubscribedInfo() got err=%v", err)
 		return
 	} else {
-		//logs.Debug("onRpcAskSubscribedInfo() got req=%v", args)
+		// logs.Debug("onRpcAskSubscribedInfo() got req=%v", args)
 	}
 	p.allSubscribeMap.Set(args.Data)
 	//
@@ -168,7 +168,7 @@ func (p *Manager) onRpcAskSubscribedInfo(ctx context.Context, req *plugin.CallRe
 		logs.Error("onRpcAskSubscribedInfo() got err=%v", err)
 		return
 	}
-	//logs.Debug("onRpcAskSubscribedInfo() return=%v", out)
+	// logs.Debug("onRpcAskSubscribedInfo() return=%v", out)
 	rep.Data = bts
 	return
 }

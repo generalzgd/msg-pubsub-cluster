@@ -20,7 +20,6 @@ import (
 	`time`
 
 	`github.com/astaxie/beego/logs`
-	`github.com/golang/protobuf/proto`
 	`google.golang.org/grpc`
 	`google.golang.org/grpc/reflection`
 
@@ -97,19 +96,18 @@ func (p *Manager) Subscribe(ctx context.Context, req *iproto.SubscribeRequest) (
 func (p *Manager) Produce(ctx context.Context, req *iproto.ProduceRequest) (rep *iproto.ProduceReply, err error) {
 	rep = &iproto.ProduceReply{}
 
-	args := &iproto.ProduceRequest{}
-	if err = proto.Unmarshal(req.Data, args); err != nil {
-		return
-	}
+	pack := codec.NewDataPack(req.Data, headDecoder, bodyDecoder)
 	//
-	pack := codec.NewDataPack(args.Data, headDecoder, bodyDecoder)
-	cmd, _ := pack.GetHead()
+	/*exclude := []int{gocmd.ID_SubscribeReq, gocmd.ID_UnsubscribeReq, gocmd.ID_SubscribeAck, gocmd.ID_UnsubscribeAck}
+	if slice.ContainsInt(exclude, int(pack.GetCmdId())) {
+		return
+	}*/
 	// 未订阅的消息一律过滤掉
-	if p.allSubscribeMap.Has(cmd) {
+	if p.allSubscribeMap.Has(pack.GetCmdId()) {
 		var index uint64
 		index, err = p.askIncreasedIndex()
 		if err != nil {
-			logs.Error("doReportMsg() get increased index err. %v", err)
+			logs.Error("Produce() get increased index err. %v", err)
 			return
 		}
 
@@ -118,6 +116,8 @@ func (p *Manager) Produce(ctx context.Context, req *iproto.ProduceRequest) (rep 
 			Pack:  pack,
 		}
 		p.doReportMsg(msg)
+	} else {
+		logs.Debug("Produce() no subscribed. ", pack.String())
 	}
 	return
 }

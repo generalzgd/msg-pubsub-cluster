@@ -4,6 +4,10 @@ package iproto;
 
 import "google/protobuf/any.proto";
 
+enum FromType {
+    Tcp = 0;
+    Rpc = 1;
+}
 // protoc -Iiproto --go_out=plugins=grpc:./iproto ./iproto/clustermsg.proto
 // 持久化存储消息包
 message StorePack {
@@ -74,26 +78,36 @@ message SyncClusterIndexReply {
     CommonReply res = 1;
 }
 
+message IdList {
+    repeated uint32 ids = 1;
+}
+
+message NodeMap {
+    // consumerKey -> ids
+    map<string, IdList> data = 1;
+}
+
 message SyncSubscribeInfoRequest {
-    map<uint32, uint32> data = 1;
+    // nodeid -> key -> ids
+    map<string, NodeMap> data = 1;
 }
 message SyncSubscribeInfoReply {
     CommonReply res = 1;
 }
 
 message SyncSubscribeInfoOffsetRequest {
-//    true:订阅，false:取消订阅
+    //    true:订阅，false:取消订阅
     bool action = 1;
-// 要订阅/取消订阅的是协议ID（cmdid）
+    // 要订阅/取消订阅的是协议ID（cmdid）
     repeated uint32 ids = 2;
-// 消费者唯一识别字符串key
+    // 消费者唯一识别字符串key
     string key = 3;
+    // raft server id
+    string nodeId = 4;
 }
 message SyncSubscribeInfoOffsetReply {
     CommonReply res = 1;
 }
-
-
 
 // 获取当前集群的索引
 message AskIndexRequest {
@@ -106,14 +120,15 @@ message AskIndexReply {
 // 获取集群内已订阅信息表
 message AskSubscribedInfoRequest {
     // 带上已有的订阅信息
-    map<uint32, uint32> data = 1;
+    // nodeid -> key -> ids
+    map<string, NodeMap> data = 1;
     // true:leader向follow请求，false:follow向leader请求
     bool bro = 2;
 }
 message AskSubscribedInfoReply {
     CommonReply res = 1;
-    // 返回别人的
-    map<uint32, uint32> data = 2;
+    // nodeid -> key -> ids
+    map<string, NodeMap> data = 2;
 }
 // 获取集群自增后的索引值
 message AskIncreasedIndexRequest {

@@ -28,7 +28,6 @@ func Uint64ToBytes(u uint64) []byte {
 	return buf
 }
 
-
 func GetIntFromBuf(buf []byte, pos, size int, order binary.ByteOrder) int {
 	start := buf[pos:]
 	val := 0

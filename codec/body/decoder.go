@@ -22,8 +22,8 @@ type Decoder struct {
 	order binary.ByteOrder
 }
 
-func NewDecoder(pos int, order binary.ByteOrder) Decoder {
-	return Decoder{
+func NewDecoder(pos int, order binary.ByteOrder) *Decoder {
+	return &Decoder{
 		pos:   pos,
 		order: order,
 	}

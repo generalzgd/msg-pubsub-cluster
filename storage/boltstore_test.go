@@ -29,8 +29,8 @@ var (
 	boltBucket      = "bolttest"
 	db              *BoltStore
 	flowPackFactory func(string) iface.StoreItem
-	headDecoder     head.Decoder
-	bodyDecoder     body.Decoder
+	headDecoder     codec.IHeadCodec
+	bodyDecoder     codec.IBodyCodec
 )
 
 func init() {

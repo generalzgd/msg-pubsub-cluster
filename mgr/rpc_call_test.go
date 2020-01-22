@@ -19,6 +19,7 @@ import (
 	`github.com/generalzgd/msg-subscriber/codec`
 	`github.com/generalzgd/msg-subscriber/define`
 	`github.com/generalzgd/msg-subscriber/iface`
+	`github.com/generalzgd/msg-subscriber/iproto`
 	`github.com/generalzgd/msg-subscriber/sender`
 )
 
@@ -332,7 +333,7 @@ func TestManager_doReportSubscribeInfoOffset(t *testing.T) {
 func TestManager_syncSubscribedInfo(t *testing.T) {
 
 	type args struct {
-		data map[uint32]uint32
+		data map[string]*iproto.NodeMap
 	}
 	tests := []struct {
 		name string
@@ -341,9 +342,16 @@ func TestManager_syncSubscribedInfo(t *testing.T) {
 		// TODO: Add test cases.
 		{
 			name: "TestManager_syncSubscribedInfo",
-			args: args{data: map[uint32]uint32{
-				3846: 1,
-			}},
+			args: args{data: map[string]*iproto.NodeMap{
+				"node1": {
+					Data: map[string]*iproto.IdList{
+						"a": {
+							Ids: []uint32{3846},
+						},
+					},
+				},
+			},
+			},
 		},
 	}
 	for _, tt := range tests {

@@ -51,7 +51,7 @@ func (p *Manager) ClusterRpcCall(cmd string, req proto.Message,
 		if exceptMe && addr == p.CurrentServerMeta.RpcAddr() {
 			continue
 		}
-		//logs.Debug("ClusterRpcCall() start rpc call.", addr)
+		// logs.Debug("ClusterRpcCall() start rpc call.", addr)
 		for i := 0; i < retry; i++ {
 			if rep, e := p.RpcCall(addr, cmd, p.IncreasedAskId(), req); e != nil {
 				err = e
@@ -186,7 +186,7 @@ func (p *Manager) askIncreasedIndex() (uint64, error) {
 
 // 向leader上报，由leader同步给集群，自己直接调用，默认都是订阅过的消息
 func (p *Manager) doReportMsg(list ...iface.StoreItem) error {
-	//logs.Debug("reportMsg() list=%v", list)
+	// logs.Debug("reportMsg() list=%v", list)
 
 	if len(list) < 1 {
 		return nil
@@ -421,6 +421,7 @@ func (p *Manager) doReportSubscribeInfoOffset(act bool, cmdIdList []int, key str
 		Action: act,
 		Ids:    util.IntToUint32(cmdIdList...),
 		Key:    key,
+		NodeId: p.CurrentServerMeta.RaftAddr(),
 	}
 	logs.Debug("doReportSubscribeInfoOffset() args=[%v]", req)
 
@@ -446,7 +447,7 @@ func (p *Manager) publish(infos []iface.IConsumer, msg iface.StoreItem, dead boo
 }
 
 // leader同步集群里所有的订阅信息
-func (p *Manager) syncSubscribedInfo(data map[uint32]uint32) {
+func (p *Manager) syncSubscribedInfo(data map[string]*iproto.NodeMap) {
 	if !p.imLeader {
 		return
 	}
@@ -479,27 +480,15 @@ func (p *Manager) doAskSubscribedInfo() {
 				logs.Error("doAskSubscribedInfo() got err. %v", err)
 			}
 			//
-			tmp := map[uint32]uint32{}
+			// tmp := map[string]*iproto.NodeMap{}
 			for _, v := range out {
 				it, ok := v.(*iproto.AskSubscribedInfoReply)
 				if !ok {
 					continue
 				}
-				for k, v := range it.Data {
-					if mv, ok := tmp[k]; ok {
-						if v > mv {
-							tmp[k] = v
-						}
-					} else {
-						tmp[k] = v
-					}
-				}
+				p.allSubscribeMap.Set(it.Data)
 			}
-			if len(tmp) > 0 {
-				p.allSubscribeMap.Set(tmp)
-				//
-				p.syncSubscribedInfo(tmp)
-			}
+			p.syncSubscribedInfo(p.allSubscribeMap.Copy())
 		} else {
 			logs.Debug("doAskSubscribedInfo() follower action")
 			// follower向leader请求
