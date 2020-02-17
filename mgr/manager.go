@@ -61,7 +61,7 @@ type Manager struct {
 	imFollower                       bool
 	acceptClientFlag                 int32                         // 是否启动端口侦听，开始接收producer or consumer
 	syncClusterSubscribedInfoOnStart int32                         // 集群节点启动的时候，是否同步已订阅信息标记
-	CurrentLeaderMeta                plugin.ServerMeta             // 当前集群的leader信息
+	CurrentLeaderMeta                *plugin.ServerMeta             // 当前集群的leader信息
 	rpcHandlers                      map[string]RpcHandler         //
 	raftHandlers                     map[iproto.CusCmd]RaftHandler //
 	index                            number.UnidirectionalNum      // 全局的消息索引，要求集群内索引保持一致

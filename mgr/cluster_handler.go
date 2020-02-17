@@ -90,16 +90,15 @@ func (p *Manager) Restore(r io.ReadCloser) error {
 
 // **************************************************
 
-// raft
+// raft address
 func (p *Manager) OnLeaderSwift(id string) {
-	logs.Debug("OnLeaderSwift() got=[%v, %v]", id, p.MemberList())
 	if len(id) < 1 {
-		p.CurrentLeaderMeta = plugin.ServerMeta{}
 		return
 	}
+	logs.Debug("OnLeaderSwift() got=[%v, %v]", id, p.MemberList())
 	for _, m := range p.MemberList() {
 		// logs.Debug("OnLeaderSwift() Addr=[%v]", m.Addr)
-		meta := plugin.ServerMeta{
+		meta := &plugin.ServerMeta{
 			Name: m.Name,
 			Addr: m.Addr,
 		}
@@ -142,10 +141,15 @@ func (p *Manager) OnImLeader() {
 func (p *Manager) OnImFollower() {
 	p.imLeader = false
 	p.imFollower = true
+	// 后加入的节点，不会主动调用onLeaderSwift, 所以需要尝试调一次
+	if p.CurrentLeaderMeta == nil {
+		p.OnLeaderSwift(string(p.Raft().Leader()))
+	}
 	//
 	p.doAskClusterIndex()
 	// todo 启动后，同步订阅信息
 	p.doAskSubscribedInfo()
+
 	// 尝试启动侦听，接收客户端
 	p.tryStartAccept()
 }
